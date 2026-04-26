@@ -8,11 +8,16 @@ function withThousands(integerStr: string): string {
 }
 
 /**
- * If `usd` is within `tolerancePct` percent of a "nice round" number
- * (a 1×, 2×, or 5× multiple of a power of 10 — e.g., 100, 200, 500, 1 000,
- * 2 000, 5 000, 10 000…), return that round number. Otherwise return
- * `usd` unchanged. Used by formatUsd for prettier display of "almost-round"
- * prices like $999.50 → $1 000 or $20 100 → $20 000.
+ * If `usd` is within `tolerancePct` percent of a "nice round" target
+ * (multiples of progressively-smaller pretty steps relative to the value's
+ * magnitude — power of 10, half-power, then multiples of 10^(order-1)),
+ * return the prettiest target that fits. Otherwise return `usd` unchanged.
+ *
+ * Examples (with 1% tolerance):
+ *   $999.50  → $1 000   (within 0.05% of $1 000)
+ *   $20 100  → $20 000  (within 0.5% of $20 000)
+ *   $24 238  → $24 000  (within 0.99% of $24 000)
+ *   $24 555  → unchanged (1.78% off $25 000, no closer pretty target within 1%)
  */
 function snapToRound(usd: number, tolerancePct: number): { value: number; snapped: boolean } {
   if (tolerancePct <= 0 || usd <= 0 || !Number.isFinite(usd)) {
@@ -20,21 +25,23 @@ function snapToRound(usd: number, tolerancePct: number): { value: number; snappe
   }
   const tolerance = tolerancePct / 100;
   const order = Math.floor(Math.log10(usd));
-  const base = Math.pow(10, order);
-  // Candidate "nice" targets near `usd`. Cover the order below, current, and above
-  // so we catch values straddling a 5× boundary (e.g., 4 998 → 5 000).
-  const candidates = [
-    1 * base / 10, 2 * base / 10, 5 * base / 10,
-    1 * base,      2 * base,      5 * base,
-    1 * base * 10, 2 * base * 10, 5 * base * 10,
+  // Try increasingly less-pretty (smaller) snap steps. The first match wins,
+  // so the prettiest snap that fits the tolerance is chosen.
+  const steps = [
+    Math.pow(10, order + 1),      // next power up
+    5 * Math.pow(10, order),      // half-power
+    Math.pow(10, order),          // current power
+    5 * Math.pow(10, order - 1),  // tenth × 5
+    Math.pow(10, order - 1),      // tenth (multiples of 10^(order-1))
   ];
-  let best = usd;
-  let bestDist = Infinity;
-  for (const c of candidates) {
-    const d = Math.abs(usd - c) / c;
-    if (d < bestDist) { bestDist = d; best = c; }
+  for (const step of steps) {
+    const target = Math.round(usd / step) * step;
+    if (target <= 0) continue;
+    const distance = Math.abs(usd - target) / target;
+    // Skip "snap to self" — only count it as a snap when the target nudges
+    // the value to a different (prettier) number.
+    if (distance > 0 && distance <= tolerance) return { value: target, snapped: true };
   }
-  if (bestDist <= tolerance) return { value: best, snapped: true };
   return { value: usd, snapped: false };
 }
 

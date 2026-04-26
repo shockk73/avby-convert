@@ -16,18 +16,11 @@ for (const target of ['chrome', 'firefox']) {
   if (fs.existsSync(outZip)) fs.unlinkSync(outZip);
 
   if (process.platform === 'win32') {
-    execFileSync(
-      'powershell',
-      [
-        '-NoProfile',
-        '-Command',
-        `Compress-Archive -Path (Join-Path -Path $args[0] -ChildPath '*') -DestinationPath $args[1] -Force`,
-        '-args',
-        distDir,
-        outZip,
-      ],
-      { stdio: 'inherit' },
-    );
+    // Build the command as a single inline string. Single-quote the paths so
+    // backslashes don't need escaping; double any embedded single quotes.
+    const q = (s) => `'${s.replace(/'/g, "''")}'`;
+    const psCmd = `Compress-Archive -Path ${q(distDir + '\\*')} -DestinationPath ${q(outZip)} -Force`;
+    execFileSync('powershell', ['-NoProfile', '-Command', psCmd], { stdio: 'inherit' });
   } else {
     execFileSync('zip', ['-r', outZip, '.'], { cwd: distDir, stdio: 'inherit' });
   }

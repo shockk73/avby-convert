@@ -80,9 +80,8 @@ export function walkAndConvert(ctx: WalkContext, root: ParentNode = document): v
       }
 
       const s = ctx.settings;
-      const style = s.mode === 'usd_only' ? s.usdOnlyStyle : s.bothStyle;
-      const usdFirst = s.mode === 'both' && s.bothUsdFirst;
-      applyConversion(el, rule.id, usdText, s.mode, style, usdFirst);
+      const usdFirst = s.mode === 'both' && s.usdFirst;
+      applyConversion(el, rule.id, usdText, s.mode, usdFirst);
     }
   }
 }
