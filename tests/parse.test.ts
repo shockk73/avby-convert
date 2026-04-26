@@ -81,21 +81,21 @@ describe('applyGroupRegex', () => {
       const captures = applyGroupRegex(SINGLE_BYN, text);
       expect(captures).not.toBeNull();
       expect(captures!.amount).toBeDefined();
-      expect(Number(captures!.amount.replace(/[\s ]/g, ''))).toBe(expected);
+      expect(Number(captures!.amount!.replace(/[\s ]/g, ''))).toBe(expected);
     },
   );
 
   it.each(SAMPLE_LEASING_TEXTS)('leasing_monthly parses "%s"', (text, expected) => {
     const captures = applyGroupRegex(LEASING, text);
     expect(captures).not.toBeNull();
-    expect(Number(captures!.amount.replace(/[\s ]/g, ''))).toBe(expected);
+    expect(Number(captures!.amount!.replace(/[\s ]/g, ''))).toBe(expected);
   });
 
   it.each(SAMPLE_RANGE_TEXTS)('range_byn parses "%s"', (text, [min, max]) => {
     const captures = applyGroupRegex(RANGE, text);
     expect(captures).not.toBeNull();
-    expect(Number(captures!.min.replace(/[\s ]/g, ''))).toBe(min);
-    expect(Number(captures!.max.replace(/[\s ]/g, ''))).toBe(max);
+    expect(Number(captures!.min!.replace(/[\s ]/g, ''))).toBe(min);
+    expect(Number(captures!.max!.replace(/[\s ]/g, ''))).toBe(max);
   });
 
   it('returns null on no match', () => {
