@@ -34,8 +34,8 @@ export type Settings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'both',
-  usdFirst: false,
-  snapTolerancePct: 0.1,
+  usdFirst: true,
+  snapTolerancePct: 1,
 };
 
 export type RateCache = {
