@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Настройки — av.by → USD</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <main>
+    <h1>Настройки av.by → USD</h1>
+
+    <section>
+      <h2>Отображение</h2>
+      <p class="hint">Стиль вставки USD рядом с BYN:</p>
+      <div class="radio-group" id="style-group">
+        <label><input type="radio" name="style" value="parens" /> В скобках:  322 730 р. (~$11 444)</label>
+        <label><input type="radio" name="style" value="badge"  /> Бейджем:    322 730 р. <span class="example-badge">~$11 444</span></label>
+        <label><input type="radio" name="style" value="below"  /> Под ценой:  322 730 р. + ~$11 444 ниже</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Правила конвертации</h2>
+      <div id="rules-container"></div>
+    </section>
+
+    <section>
+      <details id="advanced-section">
+        <summary>Дополнительно</summary>
+        <div class="advanced-body">
+          <div class="advanced-actions">
+            <button type="button" id="reset-btn">↺ Сбросить к дефолтам</button>
+          </div>
+
+          <h3>Группы (как парсить значения)</h3>
+          <textarea id="groups-json" rows="14" spellcheck="false"></textarea>
+          <div class="json-error" id="groups-error"></div>
+          <button type="button" id="save-groups">Сохранить группы</button>
+
+          <h3>Правила (где искать значения)</h3>
+          <textarea id="rules-json" rows="14" spellcheck="false"></textarea>
+          <div class="json-error" id="rules-error"></div>
+          <button type="button" id="save-rules">Сохранить правила</button>
+        </div>
+      </details>
+    </section>
+
+    <section class="about">
+      <h2>О расширении</h2>
+      <p>Версия <span id="version"></span> · Лицензия MIT</p>
+      <p>Открытый код:
+        <a href="https://github.com/shockk73/avby-convert" target="_blank" rel="noopener">github.com/shockk73/avby-convert</a>
+      </p>
+      <p class="muted">
+        Курс берётся с самого сайта av.by. Расширение не делает сетевых запросов и не собирает никаких данных.
+      </p>
+    </section>
+  </main>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
