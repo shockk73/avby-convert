@@ -1,7 +1,7 @@
 import type { Rule, Group, Settings } from '../core/types';
 import { applyGroupRegex } from '../core/parse';
 import { formatTemplate } from '../core/format';
-import { applyConversion, removeConversion, isConverted, findAllConverted } from './inserter';
+import { applyConversion, removeConversion, getConvertedRuleId, findAllConverted } from './inserter';
 
 export type WalkContext = {
   rules: Rule[];
@@ -34,7 +34,15 @@ export function walkAndConvert(ctx: WalkContext, root: ParentNode = document): v
     }
 
     for (const el of elements) {
-      if (isConverted(el, rule.id)) continue;
+      const existingRuleId = getConvertedRuleId(el);
+      if (existingRuleId !== null) {
+        if (existingRuleId !== rule.id) {
+          console.warn(
+            `[avby-convert] element matched by multiple rules: "${existingRuleId}" wins over "${rule.id}"`,
+          );
+        }
+        continue;
+      }
 
       const text = el.textContent ?? '';
       let captures: Record<string, string> | null;

@@ -55,6 +55,15 @@ export function isConverted(el: HTMLElement, ruleId: string): boolean {
   return el.getAttribute(DATA_ATTR) === ruleId;
 }
 
+/**
+ * Return the rule id that previously converted this element, or null if none.
+ * Used by the walker to enforce first-rule-wins across rules without leaking
+ * the data-attribute name out of this module.
+ */
+export function getConvertedRuleId(el: HTMLElement): string | null {
+  return el.getAttribute(DATA_ATTR);
+}
+
 export function findAllConverted(root: ParentNode = document): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(`[${DATA_ATTR}]`));
 }
