@@ -1,7 +1,14 @@
 import type { Rule, Group, Settings } from '../core/types';
 import { applyGroupRegex } from '../core/parse';
 import { formatTemplate } from '../core/format';
-import { applyConversion, removeConversion, getConvertedRuleId, findAllConverted } from './inserter';
+import {
+  applyConversion,
+  removeConversion,
+  getConvertedRuleId,
+  getOriginalText,
+  originalTextChanged,
+  findAllConverted,
+} from './inserter';
 
 export type WalkContext = {
   rules: Rule[];
@@ -35,16 +42,24 @@ export function walkAndConvert(ctx: WalkContext, root: ParentNode = document): v
 
     for (const el of elements) {
       const existingRuleId = getConvertedRuleId(el);
-      if (existingRuleId !== null) {
-        if (existingRuleId !== rule.id) {
-          console.warn(
-            `[avby-convert] element matched by multiple rules: "${existingRuleId}" wins over "${rule.id}"`,
-          );
-        }
+      if (existingRuleId !== null && existingRuleId !== rule.id) {
+        console.warn(
+          `[avby-convert] element matched by multiple rules: "${existingRuleId}" wins over "${rule.id}"`,
+        );
         continue;
       }
 
-      const text = el.textContent ?? '';
+      // Use the preserved original text (inside [data-avby-original]) rather
+      // than el.textContent, which would include any appended USD label.
+      const text = getOriginalText(el);
+
+      if (existingRuleId === rule.id) {
+        // Already converted by this rule. Re-apply only if the underlying
+        // BYN text changed (e.g. AJAX price update), otherwise it's idempotent.
+        if (!originalTextChanged(el)) continue;
+        removeConversion(el);
+      }
+
       let captures: Record<string, string> | null;
       try {
         captures = applyGroupRegex(group, text);
