@@ -7,31 +7,41 @@
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
-  <header>
-    <h1>av.by → USD</h1>
+  <header class="hero">
+    <div class="hero-brand">
+      <img src="../icons/icon-48.png" alt="" class="hero-logo" />
+      <h1>av.by <span class="hero-arrow">→</span> USD</h1>
+    </div>
+    <div class="hero-actions">
+      <a href="#" id="open-options" class="icon-btn" title="Настройки" aria-label="Настройки">⚙</a>
+      <a href="https://github.com/shockk73/avby-convert" target="_blank" rel="noopener"
+         class="icon-btn" title="GitHub" aria-label="GitHub">ⓘ</a>
+    </div>
   </header>
 
-  <section>
-    <h2>Курс</h2>
-    <div class="rate" id="rate-box">
+  <section class="rate-card">
+    <div class="rate-accent" aria-hidden="true"></div>
+    <div class="rate-body">
       <div class="rate-value" id="rate-value">Курс ещё не загружен</div>
       <div class="rate-meta" id="rate-meta"></div>
     </div>
   </section>
 
-  <section>
-    <h2>Режим</h2>
-    <select id="mode-select" aria-label="Режим отображения">
-      <option value="both">Показывать BYN и USD</option>
-      <option value="usd_only">Показывать только USD</option>
-      <option value="off">Выключено</option>
-    </select>
+  <section class="block">
+    <div class="block-label">Режим</div>
+    <div class="segmented" id="mode-segment" role="tablist" aria-label="Режим отображения">
+      <button type="button" class="segment" data-mode="off"      role="tab" aria-selected="false">Off</button>
+      <button type="button" class="segment" data-mode="both"     role="tab" aria-selected="true">BYN + USD</button>
+      <button type="button" class="segment" data-mode="usd_only" role="tab" aria-selected="false">USD only</button>
+    </div>
   </section>
 
-  <footer>
-    <a href="#" id="open-options">⚙ Настройки</a>
-    <a href="https://github.com/shockk73/avby-convert" target="_blank" rel="noopener">ⓘ GitHub</a>
-  </footer>
+  <section class="block">
+    <div class="block-label">Стиль</div>
+    <div class="style-grid" id="style-grid" role="radiogroup" aria-label="Стиль вставки USD">
+      <!-- Cards rendered by popup.ts -->
+    </div>
+  </section>
 
   <script type="module" src="popup.js"></script>
 </body>
