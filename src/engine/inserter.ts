@@ -32,7 +32,11 @@ export function applyConversion(
   }
   usdNode.textContent = usdText;
 
-  if (style === 'below' && mode === 'both') {
+  // For usd_only the original element is hidden via .avby-original-hidden
+  // (display:none !important), so the USD node must live OUTSIDE el to remain
+  // visible. For 'both' + 'below' we also insert as a sibling. Otherwise
+  // (badge / inline) we append inside.
+  if (mode === 'usd_only' || (style === 'below' && mode === 'both')) {
     el.insertAdjacentElement('afterend', usdNode);
   } else {
     el.appendChild(usdNode);
