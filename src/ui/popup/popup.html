@@ -36,10 +36,27 @@
     </div>
   </section>
 
-  <section class="block">
+  <section class="block" id="order-block">
+    <div class="block-label">Порядок</div>
+    <div class="segmented" id="order-segment" role="tablist" aria-label="Порядок отображения BYN и USD">
+      <button type="button" class="segment" data-usd-first="false" role="tab" aria-selected="true">BYN → USD</button>
+      <button type="button" class="segment" data-usd-first="true"  role="tab" aria-selected="false">USD → BYN</button>
+    </div>
+  </section>
+
+  <section class="block" id="style-block">
     <div class="block-label">Стиль</div>
     <div class="style-grid" id="style-grid" role="radiogroup" aria-label="Стиль вставки USD">
       <!-- Cards rendered by popup.ts -->
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-label" title="Подвинуть цену к ближайшему круглому числу (10/100/1000…) если она почти такая">Округление</div>
+    <div class="segmented" id="snap-segment" role="tablist" aria-label="Допустимая погрешность округления">
+      <button type="button" class="segment" data-snap="0"   role="tab" aria-selected="false">Точно</button>
+      <button type="button" class="segment" data-snap="0.1" role="tab" aria-selected="true">0.1%</button>
+      <button type="button" class="segment" data-snap="1"   role="tab" aria-selected="false">1%</button>
     </div>
   </section>
 

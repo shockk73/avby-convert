@@ -70,12 +70,6 @@ const renderBelow: StyleHandler = (el, usdText) => {
   el.insertAdjacentElement('afterend', makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--below']));
 };
 
-const renderInverted: StyleHandler = (el, usdText) => {
-  el.classList.add('avby-original-faded');
-  const usdNode = makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--lead']);
-  el.insertBefore(usdNode, el.firstChild);
-};
-
 const renderStrikethrough: StyleHandler = (el, usdText) => {
   el.classList.add('avby-strike-host');
   el.insertAdjacentElement('afterend', makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--strike']));
@@ -90,10 +84,21 @@ const STYLES: Record<InsertionStyle, StyleHandler> = {
   inline:        renderInline,
   badge:         renderBadge,
   below:         renderBelow,
-  inverted:      renderInverted,
   strikethrough: renderStrikethrough,
   pill_double:   renderPillDouble,
 };
+
+/**
+ * Unified "USD-first" rendering: USD shown bold/prepended, original BYN
+ * faded into parens. Used when settings.usdFirst === true regardless of
+ * selected style (the style selection is preserved but not visually applied
+ * in this orientation).
+ */
+function renderUsdFirst(el: HTMLElement, usdText: string): void {
+  el.classList.add('avby-original-faded');
+  const usdNode = makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--lead']);
+  el.insertBefore(usdNode, el.firstChild);
+}
 
 // ─── Public API ─────────────────────────────────────────────────
 
@@ -103,6 +108,7 @@ export function applyConversion(
   usdText: string,
   mode: DisplayMode,
   style: InsertionStyle,
+  usdFirst: boolean,
 ): boolean {
   removeConversion(el);
   if (mode === 'off') return false;
@@ -116,6 +122,8 @@ export function applyConversion(
       'afterend',
       makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--replace']),
     );
+  } else if (usdFirst) {
+    renderUsdFirst(el, usdText);
   } else {
     STYLES[style](el, usdText);
   }

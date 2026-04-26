@@ -73,13 +73,13 @@ export function walkAndConvert(ctx: WalkContext, root: ParentNode = document): v
 
       let usdText: string;
       try {
-        usdText = formatTemplate(group.format, captures, ctx.rate);
+        usdText = formatTemplate(group.format, captures, ctx.rate, ctx.settings.snapTolerancePct);
       } catch (e) {
         console.warn(`[avby-convert] format error in group "${group.id}":`, e);
         continue;
       }
 
-      applyConversion(el, rule.id, usdText, ctx.settings.mode, ctx.settings.insertionStyle);
+      applyConversion(el, rule.id, usdText, ctx.settings.mode, ctx.settings.insertionStyle, ctx.settings.usdFirst);
     }
   }
 }
