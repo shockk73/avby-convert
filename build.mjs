@@ -21,6 +21,15 @@ async function buildTarget(target) {
   await fs.rm(outdir, { recursive: true, force: true });
   await fs.mkdir(outdir, { recursive: true });
 
+  // Known limitation: src/manifest/*.json declares background as
+  //   { "type": "module" } (Chrome MV3 requires this for ES module workers),
+  // but esbuild emits IIFE bundles here. This works today because the IIFE
+  // wrapper esbuild generates is itself valid ES module syntax (a top-level
+  // expression statement, no import/export), so Chrome accepts it as a module.
+  // If we ever need real ES module features in any entry point (top-level
+  // import, export, import.meta beyond what esbuild inlines), switch this to
+  //   format: 'esm'
+  // and audit the manifest entries that don't declare type: "module".
   const ctx = await esbuild.context({
     entryPoints: ENTRY_POINTS,
     bundle: true,
