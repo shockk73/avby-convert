@@ -1,41 +1,112 @@
-.avby-usd {
-  color: rgba(0, 0, 0, 0.55);
-  font-weight: normal;
-  margin-left: 0.35em;
-  white-space: nowrap;
-}
+/* avby-convert engine styles — injected into pages via content_scripts.css */
 
-.avby-usd--badge {
-  display: inline-block;
-  padding: 1px 6px;
-  margin-left: 0.5em;
-  border-radius: 4px;
-  background: rgba(34, 139, 34, 0.12);
-  color: rgb(34, 100, 34);
-  font-size: 0.85em;
-}
-
-.avby-usd--below {
-  display: block;
-  margin-left: 0;
-  margin-top: 2px;
-  font-size: 0.85em;
-}
-
-.avby-usd--replace {
-  /* full replacement: USD shown alone, original BYN hidden via .avby-original-hidden */
-}
-
-.avby-original-hidden {
-  display: none !important;
+:root {
+  --avby-accent: #1f9e4d;
+  --avby-accent-dim: rgba(31, 158, 77, 0.85);
+  --avby-accent-soft: rgba(31, 158, 77, 0.12);
+  --avby-accent-border: rgba(31, 158, 77, 0.25);
+  --avby-text-muted: rgba(0, 0, 0, 0.55);
+  --avby-text-subtle: rgba(0, 0, 0, 0.4);
+  --avby-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 @media (prefers-color-scheme: dark) {
-  .avby-usd {
-    color: rgba(255, 255, 255, 0.6);
+  :root {
+    --avby-accent-soft: rgba(40, 200, 100, 0.18);
+    --avby-accent-border: rgba(40, 200, 100, 0.35);
+    --avby-text-muted: rgba(255, 255, 255, 0.6);
+    --avby-text-subtle: rgba(255, 255, 255, 0.4);
+    --avby-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
-  .avby-usd--badge {
-    background: rgba(80, 200, 80, 0.18);
-    color: rgb(140, 220, 140);
-  }
+}
+
+.avby-usd {
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+[data-avby-original] {
+  display: inline;
+}
+
+/* ─── inline ─────────────────────────────────────── */
+.avby-usd--inline {
+  margin-left: 0.35em;
+  color: var(--avby-text-muted);
+  font-size: 0.92em;
+}
+
+/* ─── badge ──────────────────────────────────────── */
+.avby-usd--badge {
+  display: inline-block;
+  margin-left: 0.5em;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--avby-accent-soft), rgba(31, 158, 77, 0.06));
+  border: 1px solid var(--avby-accent-border);
+  box-shadow: var(--avby-shadow-sm);
+  color: var(--avby-accent);
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+/* ─── below ──────────────────────────────────────── */
+.avby-usd--below {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.82em;
+  color: var(--avby-text-muted);
+}
+.avby-usd--below::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 1px;
+  background: currentColor;
+  vertical-align: middle;
+  margin-right: 6px;
+  opacity: 0.6;
+}
+
+/* ─── inverted ───────────────────────────────────── */
+.avby-usd--lead {
+  font-weight: 600;
+}
+.avby-original-faded > [data-avby-original] {
+  font-size: 0.85em;
+  color: var(--avby-text-muted);
+  margin-left: 0.35em;
+}
+.avby-original-faded > [data-avby-original]::before { content: '('; }
+.avby-original-faded > [data-avby-original]::after  { content: ')'; }
+
+/* ─── strikethrough ──────────────────────────────── */
+.avby-strike-host > [data-avby-original] {
+  text-decoration: line-through;
+  color: var(--avby-text-subtle);
+  font-weight: normal;
+}
+.avby-usd--strike {
+  margin-left: 0.5em;
+  font-weight: 600;
+  color: var(--avby-accent-dim);
+}
+
+/* ─── pill_double ────────────────────────────────── */
+.avby-pill-host {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--avby-accent-soft);
+}
+.avby-pill-host > [data-avby-original] {
+  font-weight: inherit;
+}
+
+/* ─── usd_only mode ──────────────────────────────── */
+.avby-original-hidden {
+  display: none !important;
+}
+.avby-usd--replace {
+  margin-left: 0;
 }
