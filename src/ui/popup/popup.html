@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>av.by → USD</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <h1>av.by → USD</h1>
+  </header>
+
+  <section>
+    <h2>Курс</h2>
+    <div class="rate" id="rate-box">
+      <div class="rate-value" id="rate-value">Курс ещё не загружен</div>
+      <div class="rate-meta" id="rate-meta"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Режим</h2>
+    <select id="mode-select" aria-label="Режим отображения">
+      <option value="both">Показывать BYN и USD</option>
+      <option value="usd_only">Показывать только USD</option>
+      <option value="off">Выключено</option>
+    </select>
+  </section>
+
+  <footer>
+    <a href="#" id="open-options">⚙ Настройки</a>
+    <a href="https://github.com/shockk73/avby-convert" target="_blank" rel="noopener">ⓘ GitHub</a>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
