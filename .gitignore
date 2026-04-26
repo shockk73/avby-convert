@@ -6,3 +6,6 @@ dist/
 .env
 .vscode/
 .idea/
+
+# Local superpowers planning docs — not for publication
+docs/
