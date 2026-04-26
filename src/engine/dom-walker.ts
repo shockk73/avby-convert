@@ -3,8 +3,6 @@ import { applyGroupRegex } from '../core/parse';
 import { formatTemplate } from '../core/format';
 import { applyConversion, removeConversion, isConverted, findAllConverted } from './inserter';
 
-const failedMatches = new WeakSet<HTMLElement>();
-
 export type WalkContext = {
   rules: Rule[];
   groupsById: Map<string, Group>;
@@ -37,7 +35,6 @@ export function walkAndConvert(ctx: WalkContext, root: ParentNode = document): v
 
     for (const el of elements) {
       if (isConverted(el, rule.id)) continue;
-      if (failedMatches.has(el)) continue;
 
       const text = el.textContent ?? '';
       let captures: Record<string, string> | null;
@@ -48,7 +45,6 @@ export function walkAndConvert(ctx: WalkContext, root: ParentNode = document): v
         continue;
       }
       if (!captures) {
-        failedMatches.add(el);
         continue;
       }
 
