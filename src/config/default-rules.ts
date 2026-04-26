@@ -4,8 +4,9 @@ export const DEFAULT_RULES: Rule[] = [
   // Цены машин (single_byn)
   { id: 'listing_card_price',     selector: '.listing-item__price-primary',       groupId: 'single_byn',      enabled: true, description: 'Цена в карточке листинга' },
   { id: 'card_price_button',      selector: '.card__price-button',                groupId: 'single_byn',      enabled: true, description: 'Цена-кнопка на детальной' },
-  { id: 'listing_top_price',      selector: '.listing-top__price-primary span',   groupId: 'single_byn',      enabled: true, description: 'Цена в шапке листинга' },
+  { id: 'listing_top_price',      selector: '.listing-top__price-primary',        groupId: 'single_byn',      enabled: true, description: 'Цена в шапке листинга' },
   { id: 'listing_index_price',    selector: '.listing-index__price',              groupId: 'single_byn',      enabled: true, description: 'Цена в индексной карточке' },
+  { id: 'price_history_desc',     selector: '.price-history__desc',               groupId: 'single_byn',      enabled: true, description: 'История изменений цены' },
 
   // Лизинг (leasing_monthly + одно single_byn)
   { id: 'side_finance_lead',      selector: '.side-finance__lead',                groupId: 'leasing_monthly', enabled: true, description: 'Лизинг — боковая панель' },
