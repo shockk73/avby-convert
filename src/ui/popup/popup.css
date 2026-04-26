@@ -100,6 +100,7 @@ body {
   color: var(--text-subtle);
   margin-bottom: 6px;
 }
+.block.disabled { opacity: 0.45; pointer-events: none; }
 
 /* Segmented control */
 .segmented {

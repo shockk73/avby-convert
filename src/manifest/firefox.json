@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "avby → USD",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Показывает примерные цены в USD рядом с BYN на av.by",
   "browser_specific_settings": {
     "gecko": {

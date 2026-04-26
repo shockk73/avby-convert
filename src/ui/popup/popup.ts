@@ -249,14 +249,20 @@ async function renderAll(): Promise<void> {
   renderSnap(s.snapTolerancePct);
   renderOrder(s.usdFirst);
 
-  // Hide order + style blocks when extension is off — they're irrelevant.
-  const off = s.mode === 'off';
-  ORDER_BLOCK.style.display = off ? 'none' : '';
-  STYLE_BLOCK.style.display = off ? 'none' : '';
-
-  if (!off) {
-    renderStyleGrid(s.insertionStyle, s.mode, s.usdFirst);
+  // Order toggle only meaningful when both BYN + USD are shown.
+  // Otherwise stays visible but disabled so user sees the option exists.
+  ORDER_BLOCK.classList.toggle('disabled', s.mode !== 'both');
+  for (const btn of ORDER_SEGMENT.querySelectorAll<HTMLButtonElement>('button.segment')) {
+    btn.disabled = s.mode !== 'both';
   }
+
+  // Style block stays visible always; greyed out + non-interactive when off.
+  const off = s.mode === 'off';
+  STYLE_BLOCK.classList.toggle('disabled', off);
+  // Render previews even in off mode using the effective non-off rendering
+  // (so cards show what each style WOULD look like). Use 'both' as preview fallback.
+  const previewMode: DisplayMode = off ? 'both' : s.mode;
+  renderStyleGrid(s.insertionStyle, previewMode, s.usdFirst);
 
   await renderRate();
 }

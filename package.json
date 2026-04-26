@@ -1,6 +1,6 @@
 {
   "name": "avby-convert",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Free Chrome/Firefox extension that shows approximate USD prices next to BYN on av.by car listings.",
   "private": true,
   "type": "module",
