@@ -12,6 +12,7 @@ export const DEFAULT_RULES: Rule[] = [
   { id: 'side_finance_lead',      selector: '.side-finance__lead',                groupId: 'leasing_monthly', enabled: true, description: 'Лизинг — боковая панель' },
   { id: 'finance_item_subtitle',  selector: '.finance-item__subtitle',            groupId: 'leasing_monthly', enabled: true, description: 'Лизинг — подпись' },
   { id: 'listing_item_finance',   selector: '.listing-item__finance a',           groupId: 'leasing_monthly', enabled: true, description: 'Лизинг в карточке листинга' },
+  { id: 'card_commercial_lease',  selector: '.card__commercial-text span:nth-of-type(2)', groupId: 'leasing_monthly', enabled: true, description: 'Лизинг в коммерч. карточке' },
   { id: 'card_finance_desc',      selector: '.card-finance__description',         groupId: 'single_byn',      enabled: true, description: 'Финансирование — описание (общая сумма)' },
 
   // Диапазоны
