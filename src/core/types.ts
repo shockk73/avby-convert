@@ -18,7 +18,13 @@ export type GroupOverride = Partial<Group> & { id: string; isCustom?: boolean };
 export type RuleOverride  = Partial<Rule>  & { id: string; isCustom?: boolean };
 
 export type DisplayMode = 'both' | 'usd_only' | 'off';
-export type InsertionStyle = 'parens' | 'badge' | 'below';
+export type InsertionStyle =
+  | 'inline'
+  | 'badge'
+  | 'below'
+  | 'inverted'
+  | 'strikethrough'
+  | 'pill_double';
 
 export type Settings = {
   mode: DisplayMode;
@@ -27,7 +33,7 @@ export type Settings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'both',
-  insertionStyle: 'parens',
+  insertionStyle: 'inline',
 };
 
 export type RateCache = {
