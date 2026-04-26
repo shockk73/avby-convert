@@ -4,8 +4,9 @@ import { mergeGroups, mergeRules } from '../../config/merge';
 import {
   getSettings, setSettings,
   getRuleOverrides, setRuleOverrides,
-  getGroupOverrides,
+  getGroupOverrides, setGroupOverrides,
   onConfigChanged,
+  resetToDefaults,
 } from '../../storage';
 import type { Rule, Group, InsertionStyle, RuleOverride } from '../../core/types';
 
@@ -112,3 +113,135 @@ VERSION_LABEL.textContent = chrome.runtime.getManifest().version;
 
 onConfigChanged(() => { void renderAll(); });
 void renderAll();
+
+// ─── Advanced section ─────────────────────────────────────────────
+
+const GROUPS_JSON   = document.getElementById('groups-json')  as HTMLTextAreaElement;
+const RULES_JSON    = document.getElementById('rules-json')   as HTMLTextAreaElement;
+const GROUPS_ERROR  = document.getElementById('groups-error') as HTMLDivElement;
+const RULES_ERROR   = document.getElementById('rules-error')  as HTMLDivElement;
+const SAVE_GROUPS   = document.getElementById('save-groups')  as HTMLButtonElement;
+const SAVE_RULES    = document.getElementById('save-rules')   as HTMLButtonElement;
+const RESET_BTN     = document.getElementById('reset-btn')    as HTMLButtonElement;
+
+async function renderJsonEditors(): Promise<void> {
+  const ruleOverrides  = await getRuleOverrides();
+  const groupOverrides = await getGroupOverrides();
+  const rules  = mergeRules (DEFAULT_RULES,  ruleOverrides);
+  const groups = mergeGroups(DEFAULT_GROUPS, groupOverrides);
+  GROUPS_JSON.value = JSON.stringify(groups, null, 2);
+  RULES_JSON.value  = JSON.stringify(rules,  null, 2);
+  GROUPS_ERROR.textContent = '';
+  RULES_ERROR.textContent  = '';
+}
+
+function validateGroups(parsed: unknown): asserts parsed is Group[] {
+  if (!Array.isArray(parsed)) throw new Error('Ожидается массив');
+  for (const g of parsed) {
+    if (typeof g !== 'object' || g === null) throw new Error('Элемент не объект');
+    const grp = g as Record<string, unknown>;
+    for (const f of ['id', 'description', 'match', 'format'] as const) {
+      if (typeof grp[f] !== 'string') throw new Error(`Поле "${f}" должно быть строкой в группе ${grp.id ?? '?'}`);
+    }
+    if (!Array.isArray(grp.captures) || grp.captures.some(c => typeof c !== 'string')) {
+      throw new Error(`captures должен быть массивом строк в группе ${grp.id}`);
+    }
+    try {
+      new RegExp(grp.match as string);
+    } catch (e) {
+      throw new Error(`Невалидный regex в группе ${grp.id}: ${(e as Error).message}`);
+    }
+  }
+}
+
+function validateRules(parsed: unknown, groupIds: Set<string>): asserts parsed is Rule[] {
+  if (!Array.isArray(parsed)) throw new Error('Ожидается массив');
+  for (const r of parsed) {
+    if (typeof r !== 'object' || r === null) throw new Error('Элемент не объект');
+    const rule = r as Record<string, unknown>;
+    for (const f of ['id', 'selector', 'groupId'] as const) {
+      if (typeof rule[f] !== 'string') throw new Error(`Поле "${f}" должно быть строкой в правиле ${rule.id ?? '?'}`);
+    }
+    if (typeof rule.enabled !== 'boolean') throw new Error(`enabled должен быть boolean в правиле ${rule.id}`);
+    if (!groupIds.has(rule.groupId as string)) {
+      throw new Error(`Правило ${rule.id} ссылается на несуществующую группу "${rule.groupId}"`);
+    }
+  }
+}
+
+function diffOverrides<T extends { id: string }>(
+  defaults: T[],
+  edited: T[],
+): Array<Partial<T> & { id: string; isCustom?: boolean }> {
+  const defaultsById = new Map(defaults.map(d => [d.id, d]));
+  const out: Array<Partial<T> & { id: string; isCustom?: boolean }> = [];
+  for (const item of edited) {
+    const def = defaultsById.get(item.id);
+    if (!def) {
+      out.push({ ...item, isCustom: true });
+      continue;
+    }
+    const patch: Partial<T> & { id: string } = { id: item.id } as Partial<T> & { id: string };
+    let differs = false;
+    for (const key of Object.keys(item) as Array<keyof T>) {
+      if (key === 'id') continue;
+      if (JSON.stringify(item[key]) !== JSON.stringify(def[key])) {
+        (patch as any)[key] = item[key];
+        differs = true;
+      }
+    }
+    if (differs) out.push(patch);
+  }
+  return out;
+}
+
+SAVE_GROUPS.addEventListener('click', async () => {
+  GROUPS_ERROR.textContent = '';
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(GROUPS_JSON.value);
+  } catch (e) {
+    GROUPS_ERROR.textContent = `Невалидный JSON: ${(e as Error).message}`;
+    return;
+  }
+  try {
+    validateGroups(parsed);
+  } catch (e) {
+    GROUPS_ERROR.textContent = (e as Error).message;
+    return;
+  }
+  const overrides = diffOverrides(DEFAULT_GROUPS, parsed) as any;
+  await setGroupOverrides(overrides);
+});
+
+SAVE_RULES.addEventListener('click', async () => {
+  RULES_ERROR.textContent = '';
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(RULES_JSON.value);
+  } catch (e) {
+    RULES_ERROR.textContent = `Невалидный JSON: ${(e as Error).message}`;
+    return;
+  }
+
+  const groupOverrides = await getGroupOverrides();
+  const allGroups = mergeGroups(DEFAULT_GROUPS, groupOverrides);
+  const groupIds = new Set(allGroups.map(g => g.id));
+
+  try {
+    validateRules(parsed, groupIds);
+  } catch (e) {
+    RULES_ERROR.textContent = (e as Error).message;
+    return;
+  }
+  const overrides = diffOverrides(DEFAULT_RULES, parsed) as any;
+  await setRuleOverrides(overrides);
+});
+
+RESET_BTN.addEventListener('click', async () => {
+  if (!confirm('Все ваши изменения правил и групп будут удалены. Продолжить?')) return;
+  await resetToDefaults();
+});
+
+onConfigChanged(() => { void renderJsonEditors(); });
+void renderJsonEditors();
