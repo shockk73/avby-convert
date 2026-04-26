@@ -30,10 +30,17 @@ describe('formatUsd', () => {
     expect(formatUsd(100100, 0.1)).toBe('$100 000');
   });
 
+  it('snaps to 2x and 5x multiples of power of 10', () => {
+    expect(formatUsd(20100, 1)).toBe('$20 000');     // 0.5% off 20000
+    expect(formatUsd(50300, 1)).toBe('$50 000');     // 0.6% off 50000
+    expect(formatUsd(199.9, 0.1)).toBe('$200');      // 0.05% off 200, snaps
+    expect(formatUsd(5005, 0.1)).toBe('$5 000');     // 0.1% off 5000
+  });
+
   it('does not snap when outside tolerance', () => {
-    expect(formatUsd(950, 0.1)).toBe('$950.00');
-    expect(formatUsd(1050, 0.1)).toBe('$1 050');
-    expect(formatUsd(100200, 0.1)).toBe('$100 200');
+    expect(formatUsd(950, 0.1)).toBe('$950.00');     // 5% off 1000 (or 5% off 1000)
+    expect(formatUsd(1050, 0.1)).toBe('$1 050');     // 5% off 1000
+    expect(formatUsd(100200, 0.1)).toBe('$100 200'); // 0.2% off 100000
   });
 });
 

@@ -11,7 +11,6 @@ const HOST_CLASSES = [
   'avby-original-hidden',
   'avby-original-faded',
   'avby-strike-host',
-  'avby-pill-host',
 ];
 
 /** Cheap DJB2-style hash to detect original-text changes. */
@@ -56,28 +55,34 @@ function makeUsdNode(text: string, classes: string[]): HTMLSpanElement {
 
 // ─── Style handlers ─────────────────────────────────────────────
 
-type StyleHandler = (el: HTMLElement, usdText: string) => void;
+type StyleHandler = (el: HTMLElement, usdText: string, usdFirst: boolean) => void;
 
-const renderInline: StyleHandler = (el, usdText) => {
-  el.appendChild(makeUsdNode('· ' + usdText, [USD_NODE_CLASS, 'avby-usd--inline']));
+const renderInline: StyleHandler = (el, usdText, usdFirst) => {
+  const text = usdFirst ? usdText + ' · ' : ' · ' + usdText;
+  const node = makeUsdNode(text, [USD_NODE_CLASS, 'avby-usd--inline']);
+  if (usdFirst) el.insertBefore(node, el.firstChild);
+  else          el.appendChild(node);
 };
 
-const renderBadge: StyleHandler = (el, usdText) => {
-  el.appendChild(makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--badge']));
+const renderBadge: StyleHandler = (el, usdText, usdFirst) => {
+  const node = makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--badge']);
+  // Badge is a discrete pill — insert as sibling so the host element's text
+  // styles (font-weight, color of the price button etc.) don't bleed into it.
+  if (usdFirst) el.insertAdjacentElement('beforebegin', node);
+  else          el.insertAdjacentElement('afterend',    node);
 };
 
-const renderBelow: StyleHandler = (el, usdText) => {
-  el.insertAdjacentElement('afterend', makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--below']));
+const renderBelow: StyleHandler = (el, usdText, usdFirst) => {
+  const node = makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--below']);
+  if (usdFirst) el.insertAdjacentElement('beforebegin', node);
+  else          el.insertAdjacentElement('afterend',    node);
 };
 
-const renderStrikethrough: StyleHandler = (el, usdText) => {
+const renderStrikethrough: StyleHandler = (el, usdText, usdFirst) => {
   el.classList.add('avby-strike-host');
-  el.insertAdjacentElement('afterend', makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--strike']));
-};
-
-const renderPillDouble: StyleHandler = (el, usdText) => {
-  el.classList.add('avby-pill-host');
-  el.appendChild(makeUsdNode('· ' + usdText, [USD_NODE_CLASS, 'avby-usd--inline']));
+  const node = makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--strike']);
+  if (usdFirst) el.insertAdjacentElement('beforebegin', node);
+  else          el.insertAdjacentElement('afterend',    node);
 };
 
 const STYLES: Record<InsertionStyle, StyleHandler> = {
@@ -85,20 +90,7 @@ const STYLES: Record<InsertionStyle, StyleHandler> = {
   badge:         renderBadge,
   below:         renderBelow,
   strikethrough: renderStrikethrough,
-  pill_double:   renderPillDouble,
 };
-
-/**
- * Unified "USD-first" rendering: USD shown bold/prepended, original BYN
- * faded into parens. Used when settings.usdFirst === true regardless of
- * selected style (the style selection is preserved but not visually applied
- * in this orientation).
- */
-function renderUsdFirst(el: HTMLElement, usdText: string): void {
-  el.classList.add('avby-original-faded');
-  const usdNode = makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--lead']);
-  el.insertBefore(usdNode, el.firstChild);
-}
 
 // ─── Public API ─────────────────────────────────────────────────
 
@@ -118,14 +110,13 @@ export function applyConversion(
 
   if (mode === 'usd_only') {
     el.classList.add('avby-original-hidden');
-    el.insertAdjacentElement(
-      'afterend',
-      makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--replace']),
-    );
-  } else if (usdFirst) {
-    renderUsdFirst(el, usdText);
+    // Style picker for usd_only is limited to inline/badge — apply that
+    // visual to the standalone USD node. Anything else falls back to plain.
+    const classes = [USD_NODE_CLASS, 'avby-usd--replace'];
+    if (style === 'badge') classes.push('avby-usd--badge');
+    el.insertAdjacentElement('afterend', makeUsdNode(usdText, classes));
   } else {
-    STYLES[style](el, usdText);
+    STYLES[style](el, usdText, usdFirst);
   }
 
   el.setAttribute(DATA_ATTR, ruleId);

@@ -8,20 +8,33 @@ function withThousands(integerStr: string): string {
 }
 
 /**
- * If `usd` is within `tolerancePct` percent of the nearest power of 10
- * (e.g., 100, 1000, 10000), return that power of 10. Otherwise return
+ * If `usd` is within `tolerancePct` percent of a "nice round" number
+ * (a 1×, 2×, or 5× multiple of a power of 10 — e.g., 100, 200, 500, 1 000,
+ * 2 000, 5 000, 10 000…), return that round number. Otherwise return
  * `usd` unchanged. Used by formatUsd for prettier display of "almost-round"
- * prices like $999.50 → $1 000 or $9 998 → $10 000.
+ * prices like $999.50 → $1 000 or $20 100 → $20 000.
  */
 function snapToRound(usd: number, tolerancePct: number): { value: number; snapped: boolean } {
   if (tolerancePct <= 0 || usd <= 0 || !Number.isFinite(usd)) {
     return { value: usd, snapped: false };
   }
-  const order = Math.round(Math.log10(usd));
-  const target = Math.pow(10, order);
-  const distance = Math.abs(usd - target) / target;
   const tolerance = tolerancePct / 100;
-  if (distance <= tolerance) return { value: target, snapped: true };
+  const order = Math.floor(Math.log10(usd));
+  const base = Math.pow(10, order);
+  // Candidate "nice" targets near `usd`. Cover the order below, current, and above
+  // so we catch values straddling a 5× boundary (e.g., 4 998 → 5 000).
+  const candidates = [
+    1 * base / 10, 2 * base / 10, 5 * base / 10,
+    1 * base,      2 * base,      5 * base,
+    1 * base * 10, 2 * base * 10, 5 * base * 10,
+  ];
+  let best = usd;
+  let bestDist = Infinity;
+  for (const c of candidates) {
+    const d = Math.abs(usd - c) / c;
+    if (d < bestDist) { bestDist = d; best = c; }
+  }
+  if (bestDist <= tolerance) return { value: best, snapped: true };
   return { value: usd, snapped: false };
 }
 

@@ -79,7 +79,10 @@ export function walkAndConvert(ctx: WalkContext, root: ParentNode = document): v
         continue;
       }
 
-      applyConversion(el, rule.id, usdText, ctx.settings.mode, ctx.settings.insertionStyle, ctx.settings.usdFirst);
+      const s = ctx.settings;
+      const style = s.mode === 'usd_only' ? s.usdOnlyStyle : s.bothStyle;
+      const usdFirst = s.mode === 'both' && s.bothUsdFirst;
+      applyConversion(el, rule.id, usdText, s.mode, style, usdFirst);
     }
   }
 }

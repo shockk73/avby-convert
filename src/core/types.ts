@@ -18,35 +18,42 @@ export type GroupOverride = Partial<Group> & { id: string; isCustom?: boolean };
 export type RuleOverride  = Partial<Rule>  & { id: string; isCustom?: boolean };
 
 export type DisplayMode = 'both' | 'usd_only' | 'off';
-export type InsertionStyle =
+
+/** Styles available when both BYN and USD are shown together. */
+export type BothStyle =
   | 'inline'
   | 'badge'
   | 'below'
-  | 'strikethrough'
-  | 'pill_double';
+  | 'strikethrough';
+
+/** Styles available when only USD is shown (BYN hidden). Subset that visually makes sense. */
+export type UsdOnlyStyle = 'inline' | 'badge';
+
+/** Union — used by inserter (it consumes whichever applies). */
+export type InsertionStyle = BothStyle;
 
 export type Settings = {
   mode: DisplayMode;
-  insertionStyle: InsertionStyle;
-  /**
-   * Visual priority. When 'usd', USD is shown first/prominent and the
-   * original BYN value is faded into a secondary role. Orthogonal to
-   * insertionStyle — combinable with any style.
-   */
-  usdFirst: boolean;
+  /** Selected style for `mode === 'both'`. Independent of usd_only. */
+  bothStyle: BothStyle;
+  /** When true (and mode='both'): USD shown first/prominent, BYN faded. */
+  bothUsdFirst: boolean;
+  /** Selected style for `mode === 'usd_only'`. Limited to inline/badge. */
+  usdOnlyStyle: UsdOnlyStyle;
   /**
    * Snap-to-round tolerance for USD display, as a percentage.
    * If the converted USD value is within this tolerance of a power of 10
    * (e.g., 100, 1000, 10000), it is nudged to that round number for prettier
-   * display. 0 disables snapping. Default 0.1 (one-tenth of one percent).
+   * display. 0 disables snapping. Default 0.1.
    */
   snapTolerancePct: number;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
   mode: 'both',
-  insertionStyle: 'inline',
-  usdFirst: false,
+  bothStyle: 'inline',
+  bothUsdFirst: false,
+  usdOnlyStyle: 'inline',
   snapTolerancePct: 0.1,
 };
 

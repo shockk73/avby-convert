@@ -1,11 +1,12 @@
 import { browserApi } from '../../shared/browser';
 import { getSettings, setSettings, getRate, onConfigChanged } from '../../storage';
-import type { DisplayMode, InsertionStyle } from '../../core/types';
+import type { DisplayMode, BothStyle, UsdOnlyStyle, Settings } from '../../core/types';
 
 const RATE_VALUE    = document.getElementById('rate-value') as HTMLDivElement;
 const RATE_META     = document.getElementById('rate-meta')  as HTMLDivElement;
 const SEGMENT       = document.getElementById('mode-segment') as HTMLDivElement;
 const SNAP_SEGMENT  = document.getElementById('snap-segment') as HTMLDivElement;
+const SNAP_BLOCK    = document.getElementById('snap-block') as HTMLElement;
 const ORDER_SEGMENT = document.getElementById('order-segment') as HTMLDivElement;
 const ORDER_BLOCK   = document.getElementById('order-block') as HTMLElement;
 const STYLE_BLOCK   = document.getElementById('style-block') as HTMLElement;
@@ -94,14 +95,13 @@ ORDER_SEGMENT.addEventListener('click', async (e) => {
   if (!target) return;
   const raw = target.dataset.usdFirst;
   if (raw === undefined) return;
-  await setSettings({ usdFirst: raw === 'true' });
+  await setSettings({ bothUsdFirst: raw === 'true' });
 });
 
 // ─── Style preview grid ────────────────────────────────────────
 const BYN_SAMPLE = '11 444 р.';
 const USD_SAMPLE = '~$4 058';
 
-/** Helper: span with text + classes, all set safely via DOM API. */
 function span(text: string, ...classes: string[]): HTMLSpanElement {
   const s = document.createElement('span');
   if (classes.length) s.className = classes.join(' ');
@@ -109,114 +109,107 @@ function span(text: string, ...classes: string[]): HTMLSpanElement {
   return s;
 }
 
-/**
- * Each builder returns an HTMLElement whose subtree mirrors what the engine
- * inserter produces on a real page for that style WHEN usdFirst=false.
- * The shared usdFirst preview (`buildUsdFirstPreview`) is used regardless of
- * style when usdFirst=true (mirrors the unified renderUsdFirst handler).
- * Built via createElement + textContent — no innerHTML.
- */
-type PreviewBuilder = () => HTMLElement;
-
-const PREVIEW_BUILDERS: Record<InsertionStyle, PreviewBuilder> = {
-  inline: () => {
-    const wrap = document.createElement('span');
-    wrap.appendChild(span(BYN_SAMPLE));
-    wrap.appendChild(span('· ' + USD_SAMPLE, 'avby-usd', 'avby-usd--inline'));
-    return wrap;
-  },
-  badge: () => {
-    const wrap = document.createElement('span');
-    wrap.appendChild(span(BYN_SAMPLE));
-    wrap.appendChild(span(USD_SAMPLE, 'avby-usd', 'avby-usd--badge'));
-    return wrap;
-  },
-  below: () => {
-    const wrap = document.createElement('div');
-    const top = document.createElement('div');
-    top.appendChild(span(BYN_SAMPLE));
-    wrap.appendChild(top);
-    wrap.appendChild(span(USD_SAMPLE, 'avby-usd', 'avby-usd--below'));
-    return wrap;
-  },
-  strikethrough: () => {
-    const wrap = document.createElement('span');
-    const host = document.createElement('span');
-    host.className = 'avby-strike-host';
-    const orig = span(BYN_SAMPLE);
-    orig.setAttribute('data-avby-original', '');
-    host.appendChild(orig);
-    wrap.appendChild(host);
-    wrap.appendChild(span(USD_SAMPLE, 'avby-usd', 'avby-usd--strike'));
-    return wrap;
-  },
-  pill_double: () => {
-    const wrap = document.createElement('span');
-    const host = document.createElement('span');
-    host.className = 'avby-pill-host';
-    host.appendChild(span(BYN_SAMPLE));
-    host.appendChild(span('· ' + USD_SAMPLE, 'avby-usd', 'avby-usd--inline'));
-    wrap.appendChild(host);
-    return wrap;
-  },
-};
-
-/** Preview for usd_only mode: just the USD value with the style's secondary visual. */
-const USD_ONLY_BUILDERS: Record<InsertionStyle, PreviewBuilder> = {
-  inline:        () => span(USD_SAMPLE, 'avby-usd', 'avby-usd--replace'),
-  badge:         () => span(USD_SAMPLE, 'avby-usd', 'avby-usd--badge'),
-  below:         () => span(USD_SAMPLE, 'avby-usd', 'avby-usd--below'),
-  strikethrough: () => span(USD_SAMPLE, 'avby-usd', 'avby-usd--strike'),
-  pill_double:   () => {
-    const wrap = document.createElement('span');
-    wrap.className = 'avby-pill-host';
-    wrap.appendChild(span(USD_SAMPLE));
-    return wrap;
-  },
-};
-
-function buildUsdFirstPreview(): HTMLElement {
-  const wrap = document.createElement('span');
-  wrap.className = 'avby-original-faded';
-  wrap.appendChild(span(USD_SAMPLE, 'avby-usd', 'avby-usd--lead'));
-  const orig = span(BYN_SAMPLE);
-  orig.setAttribute('data-avby-original', '');
-  wrap.appendChild(orig);
-  return wrap;
-}
-
-const STYLE_ORDER: InsertionStyle[] = [
-  'inline',
-  'badge',
-  'below',
-  'strikethrough',
-  'pill_double',
-];
-
 function clearChildren(node: HTMLElement): void {
   while (node.firstChild) node.removeChild(node.firstChild);
 }
 
-function buildPreview(style: InsertionStyle, mode: DisplayMode, usdFirst: boolean): HTMLElement {
-  if (mode === 'usd_only') return USD_ONLY_BUILDERS[style]();
-  if (usdFirst)            return buildUsdFirstPreview();
-  return PREVIEW_BUILDERS[style]();
+// ─── Both-mode previews (5 styles, both orientations) ─────────
+function previewBothMode(style: BothStyle, usdFirst: boolean): HTMLElement {
+  const wrap = document.createElement(style === 'below' ? 'div' : 'span');
+  switch (style) {
+    case 'inline': {
+      if (usdFirst) {
+        wrap.appendChild(span(USD_SAMPLE + ' · ', 'avby-usd', 'avby-usd--inline'));
+        wrap.appendChild(span(BYN_SAMPLE));
+      } else {
+        wrap.appendChild(span(BYN_SAMPLE));
+        wrap.appendChild(span(' · ' + USD_SAMPLE, 'avby-usd', 'avby-usd--inline'));
+      }
+      return wrap;
+    }
+    case 'badge': {
+      if (usdFirst) {
+        wrap.appendChild(span(USD_SAMPLE, 'avby-usd', 'avby-usd--badge'));
+        wrap.appendChild(span(' ' + BYN_SAMPLE));
+      } else {
+        wrap.appendChild(span(BYN_SAMPLE));
+        wrap.appendChild(span(USD_SAMPLE, 'avby-usd', 'avby-usd--badge'));
+      }
+      return wrap;
+    }
+    case 'below': {
+      if (usdFirst) {
+        wrap.appendChild(span(USD_SAMPLE, 'avby-usd', 'avby-usd--below'));
+        const bynLine = document.createElement('div');
+        bynLine.appendChild(span(BYN_SAMPLE));
+        wrap.appendChild(bynLine);
+      } else {
+        const bynLine = document.createElement('div');
+        bynLine.appendChild(span(BYN_SAMPLE));
+        wrap.appendChild(bynLine);
+        wrap.appendChild(span(USD_SAMPLE, 'avby-usd', 'avby-usd--below'));
+      }
+      return wrap;
+    }
+    case 'strikethrough': {
+      const host = document.createElement('span');
+      host.className = 'avby-strike-host';
+      const orig = span(BYN_SAMPLE);
+      orig.setAttribute('data-avby-original', '');
+      host.appendChild(orig);
+      if (usdFirst) {
+        wrap.appendChild(span(USD_SAMPLE, 'avby-usd', 'avby-usd--strike'));
+        wrap.appendChild(host);
+      } else {
+        wrap.appendChild(host);
+        wrap.appendChild(span(USD_SAMPLE, 'avby-usd', 'avby-usd--strike'));
+      }
+      return wrap;
+    }
+  }
 }
 
-function renderStyleGrid(active: InsertionStyle, mode: DisplayMode, usdFirst: boolean): void {
+// ─── Usd-only previews (only inline/badge) ────────────────────
+function previewUsdOnlyMode(style: UsdOnlyStyle): HTMLElement {
+  const wrap = document.createElement('span');
+  if (style === 'badge') {
+    wrap.appendChild(span(USD_SAMPLE, 'avby-usd', 'avby-usd--badge'));
+  } else {
+    wrap.appendChild(span(USD_SAMPLE));
+  }
+  return wrap;
+}
+
+const BOTH_STYLE_ORDER: BothStyle[] = [
+  'inline',
+  'badge',
+  'below',
+  'strikethrough',
+];
+const USD_ONLY_STYLE_ORDER: UsdOnlyStyle[] = ['inline', 'badge'];
+
+function renderStyleGrid(s: Settings, isUsdOnlyView: boolean): void {
   clearChildren(GRID);
-  for (const id of STYLE_ORDER) {
+  const ids = isUsdOnlyView ? USD_ONLY_STYLE_ORDER : BOTH_STYLE_ORDER;
+  const active = isUsdOnlyView ? s.usdOnlyStyle : s.bothStyle;
+
+  for (const id of ids) {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'style-card';
     card.setAttribute('role', 'radio');
     card.setAttribute('aria-checked', id === active ? 'true' : 'false');
     card.dataset.style = id;
+    card.dataset.scope = isUsdOnlyView ? 'usdOnly' : 'both';
     if (id === active) card.classList.add('active');
 
     const preview = document.createElement('div');
     preview.className = 'style-preview';
-    preview.appendChild(buildPreview(id, mode, usdFirst));
+    preview.appendChild(
+      isUsdOnlyView
+        ? previewUsdOnlyMode(id as UsdOnlyStyle)
+        : previewBothMode(id as BothStyle, s.bothUsdFirst),
+    );
 
     const name = document.createElement('div');
     name.className = 'style-name';
@@ -231,9 +224,14 @@ function renderStyleGrid(active: InsertionStyle, mode: DisplayMode, usdFirst: bo
 GRID.addEventListener('click', async (e) => {
   const target = (e.target as HTMLElement).closest('.style-card') as HTMLElement | null;
   if (!target) return;
-  const style = target.dataset.style as InsertionStyle | undefined;
-  if (!style) return;
-  await setSettings({ insertionStyle: style });
+  const style = target.dataset.style;
+  const scope = target.dataset.scope;
+  if (!style || !scope) return;
+  if (scope === 'usdOnly') {
+    await setSettings({ usdOnlyStyle: style as UsdOnlyStyle });
+  } else {
+    await setSettings({ bothStyle: style as BothStyle });
+  }
 });
 
 // ─── Open options ──────────────────────────────────────────────
@@ -243,26 +241,29 @@ OPEN_OPTS.addEventListener('click', (e) => {
 });
 
 // ─── Top-level render ──────────────────────────────────────────
+function setBlockEnabled(block: HTMLElement, enabled: boolean): void {
+  block.classList.toggle('disabled', !enabled);
+  for (const btn of block.querySelectorAll<HTMLButtonElement>('button')) {
+    btn.disabled = !enabled;
+  }
+}
+
 async function renderAll(): Promise<void> {
   const s = await getSettings();
   renderMode(s.mode);
   renderSnap(s.snapTolerancePct);
-  renderOrder(s.usdFirst);
+  renderOrder(s.bothUsdFirst);
 
-  // Order toggle only meaningful when both BYN + USD are shown.
-  // Otherwise stays visible but disabled so user sees the option exists.
-  ORDER_BLOCK.classList.toggle('disabled', s.mode !== 'both');
-  for (const btn of ORDER_SEGMENT.querySelectorAll<HTMLButtonElement>('button.segment')) {
-    btn.disabled = s.mode !== 'both';
-  }
-
-  // Style block stays visible always; greyed out + non-interactive when off.
   const off = s.mode === 'off';
-  STYLE_BLOCK.classList.toggle('disabled', off);
-  // Render previews even in off mode using the effective non-off rendering
-  // (so cards show what each style WOULD look like). Use 'both' as preview fallback.
-  const previewMode: DisplayMode = off ? 'both' : s.mode;
-  renderStyleGrid(s.insertionStyle, previewMode, s.usdFirst);
+  // In `off` mode everything is greyed but visible. Elsewhere enable per applicability.
+  setBlockEnabled(SNAP_BLOCK,  !off);
+  setBlockEnabled(ORDER_BLOCK, s.mode === 'both');
+  setBlockEnabled(STYLE_BLOCK, !off);
+
+  // Style grid: in off, show 'both' grid (more useful preview). In usd_only show subset.
+  // In both, show full set.
+  const isUsdOnlyView = s.mode === 'usd_only';
+  renderStyleGrid(s, isUsdOnlyView);
 
   await renderRate();
 }
