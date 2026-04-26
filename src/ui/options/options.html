@@ -8,54 +8,84 @@
 </head>
 <body>
   <main>
-    <h1>Настройки av.by → USD</h1>
+    <header class="hero">
+      <img src="../icons/icon-48.png" alt="" class="hero-logo" />
+      <h1>Настройки av.by → USD</h1>
+    </header>
 
-    <section>
-      <h2>Отображение</h2>
-      <p class="hint">Стиль вставки USD рядом с BYN:</p>
-      <div class="radio-group" id="style-group">
-        <label><input type="radio" name="style" value="inline" /> В скобках:  322 730 р. (~$11 444)</label>
-        <label><input type="radio" name="style" value="badge"  /> Бейджем:    322 730 р. <span class="example-badge">~$11 444</span></label>
-        <label><input type="radio" name="style" value="below"  /> Под ценой:  322 730 р. + ~$11 444 ниже</label>
-      </div>
-    </section>
+    <input type="radio" name="tab" id="tab-rules"    class="tab-input" checked />
+    <input type="radio" name="tab" id="tab-advanced" class="tab-input" />
+    <input type="radio" name="tab" id="tab-about"    class="tab-input" />
 
-    <section>
-      <h2>Правила конвертации</h2>
-      <div id="rules-container"></div>
-    </section>
+    <nav class="tabs" role="tablist" aria-label="Разделы настроек">
+      <label for="tab-rules"    class="tab-label" role="tab" aria-controls="panel-rules">Правила</label>
+      <label for="tab-advanced" class="tab-label" role="tab" aria-controls="panel-advanced">Дополнительно</label>
+      <label for="tab-about"    class="tab-label" role="tab" aria-controls="panel-about">О расширении</label>
+    </nav>
 
-    <section>
-      <details id="advanced-section">
-        <summary>Дополнительно</summary>
-        <div class="advanced-body">
-          <div class="advanced-actions">
-            <button type="button" id="reset-btn">↺ Сбросить к дефолтам</button>
-          </div>
+    <div class="tab-panels">
+      <section class="tab-panel" id="panel-rules" role="tabpanel" aria-labelledby="tab-rules">
+        <div id="rules-container"></div>
+      </section>
 
-          <h3>Группы (как парсить значения)</h3>
-          <textarea id="groups-json" rows="14" spellcheck="false"></textarea>
-          <div class="json-error" id="groups-error"></div>
-          <button type="button" id="save-groups">Сохранить группы</button>
-
-          <h3>Правила (где искать значения)</h3>
-          <textarea id="rules-json" rows="14" spellcheck="false"></textarea>
-          <div class="json-error" id="rules-error"></div>
-          <button type="button" id="save-rules">Сохранить правила</button>
+      <section class="tab-panel" id="panel-advanced" role="tabpanel" aria-labelledby="tab-advanced">
+        <div class="warn-box">
+          ⚠ Для продвинутых пользователей. Здесь можно править регулярные выражения и селекторы напрямую в JSON.
         </div>
-      </details>
-    </section>
 
-    <section class="about">
-      <h2>О расширении</h2>
-      <p>Версия <span id="version"></span> · Лицензия MIT</p>
-      <p>Открытый код:
-        <a href="https://github.com/shockk73/avby-convert" target="_blank" rel="noopener">github.com/shockk73/avby-convert</a>
-      </p>
-      <p class="muted">
-        Курс берётся с самого сайта av.by. Расширение не делает сетевых запросов и не собирает никаких данных.
-      </p>
-    </section>
+        <div class="advanced-actions">
+          <button type="button" id="reset-btn" class="btn-secondary">↺ Сбросить к дефолтам</button>
+        </div>
+
+        <h3>Группы (как парсить значения)</h3>
+        <textarea id="groups-json" rows="14" spellcheck="false"></textarea>
+        <div class="json-error" id="groups-error"></div>
+        <button type="button" id="save-groups" class="btn-primary">Сохранить группы</button>
+
+        <h3>Правила (где искать значения)</h3>
+        <textarea id="rules-json" rows="14" spellcheck="false"></textarea>
+        <div class="json-error" id="rules-error"></div>
+        <button type="button" id="save-rules" class="btn-primary">Сохранить правила</button>
+      </section>
+
+      <section class="tab-panel" id="panel-about" role="tabpanel" aria-labelledby="tab-about">
+        <div class="about-hero">
+          <img src="../icons/icon-128.png" alt="" class="about-logo" />
+          <div class="about-title">avby → USD</div>
+          <div class="about-meta">Версия <span id="version"></span> · Лицензия MIT</div>
+        </div>
+
+        <a class="about-card about-card--link" href="https://github.com/shockk73/avby-convert" target="_blank" rel="noopener">
+          <div class="about-card-icon">🔓</div>
+          <div class="about-card-body">
+            <div class="about-card-title">Открытый код</div>
+            <div class="about-card-text">github.com/shockk73/avby-convert</div>
+          </div>
+          <div class="about-card-arrow">→</div>
+        </a>
+
+        <div class="about-card">
+          <div class="about-card-icon">🚫</div>
+          <div class="about-card-body">
+            <div class="about-card-title">Никаких сетевых запросов</div>
+            <div class="about-card-text">
+              Курс берётся со страницы av.by напрямую. Ни телеметрии, ни аналитики, ни внешних API.
+            </div>
+          </div>
+        </div>
+
+        <div class="about-card">
+          <div class="about-card-icon">🔒</div>
+          <div class="about-card-body">
+            <div class="about-card-title">Минимальные разрешения</div>
+            <div class="about-card-text">
+              <code>storage</code> — для сохранения настроек.<br />
+              <code>*.av.by</code> — для модификации DOM.
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <script type="module" src="options.js"></script>
