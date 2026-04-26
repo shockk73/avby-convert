@@ -2,35 +2,40 @@ import { DEFAULT_GROUPS } from '../../config/default-groups';
 import { DEFAULT_RULES } from '../../config/default-rules';
 import { mergeGroups, mergeRules } from '../../config/merge';
 import {
-  getSettings, setSettings,
   getRuleOverrides, setRuleOverrides,
   getGroupOverrides, setGroupOverrides,
-  onConfigChanged,
   resetToDefaults,
+  onConfigChanged,
 } from '../../storage';
-import type { Rule, Group, InsertionStyle, RuleOverride } from '../../core/types';
+import type { Rule, Group, RuleOverride } from '../../core/types';
 
-const STYLE_GROUP        = document.getElementById('style-group') as HTMLDivElement;
-const RULES_CONTAINER    = document.getElementById('rules-container') as HTMLDivElement;
-const VERSION_LABEL      = document.getElementById('version') as HTMLSpanElement;
+const RULES_CONTAINER = document.getElementById('rules-container') as HTMLDivElement;
+const VERSION_LABEL   = document.getElementById('version') as HTMLSpanElement;
+const GROUPS_JSON     = document.getElementById('groups-json')  as HTMLTextAreaElement;
+const RULES_JSON      = document.getElementById('rules-json')   as HTMLTextAreaElement;
+const GROUPS_ERROR    = document.getElementById('groups-error') as HTMLDivElement;
+const RULES_ERROR     = document.getElementById('rules-error')  as HTMLDivElement;
+const SAVE_GROUPS     = document.getElementById('save-groups')  as HTMLButtonElement;
+const SAVE_RULES      = document.getElementById('save-rules')   as HTMLButtonElement;
+const RESET_BTN       = document.getElementById('reset-btn')    as HTMLButtonElement;
 
 const GROUP_DISPLAY_NAMES: Record<string, string> = {
-  single_byn:     'Цены машин',
+  single_byn:      'Цены машин',
   leasing_monthly: 'Лизинг',
-  range_byn:      'Диапазоны',
+  range_byn:       'Диапазоны',
 };
 
-function setStyleRadio(value: InsertionStyle): void {
-  for (const input of STYLE_GROUP.querySelectorAll<HTMLInputElement>('input[name="style"]')) {
-    input.checked = input.value === value;
-  }
+const GROUP_EMOJIS: Record<string, string> = {
+  single_byn:      '💰',
+  leasing_monthly: '📅',
+  range_byn:       '📊',
+};
+
+function clearChildren(node: HTMLElement): void {
+  while (node.firstChild) node.removeChild(node.firstChild);
 }
 
-STYLE_GROUP.addEventListener('change', async (e) => {
-  const target = e.target as HTMLInputElement;
-  if (target.name !== 'style') return;
-  await setSettings({ insertionStyle: target.value as InsertionStyle });
-});
+// ─── Rules tab ───────────────────────────────────────
 
 function upsertOverride(list: RuleOverride[], patch: RuleOverride): RuleOverride[] {
   const next = list.filter(o => o.id !== patch.id);
@@ -39,29 +44,49 @@ function upsertOverride(list: RuleOverride[], patch: RuleOverride): RuleOverride
   return next;
 }
 
-function renderGroupBlock(group: Group, rules: Rule[], currentOverrides: RuleOverride[]): HTMLElement {
-  const wrap = document.createElement('div');
-  wrap.className = 'rule-group';
-  const heading = document.createElement('h3');
-  heading.textContent = GROUP_DISPLAY_NAMES[group.id] ?? group.id;
-  wrap.appendChild(heading);
+function makeToggle(checked: boolean, onChange: (next: boolean) => void): HTMLLabelElement {
+  const label = document.createElement('label');
+  label.className = 'switch';
+
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.checked = checked;
+  input.addEventListener('change', () => onChange(input.checked));
+
+  const track = document.createElement('span');
+  track.className = 'track';
+
+  const knob = document.createElement('span');
+  knob.className = 'knob';
+
+  label.appendChild(input);
+  label.appendChild(track);
+  label.appendChild(knob);
+  return label;
+}
+
+function renderGroupCard(group: Group, rules: Rule[], currentOverrides: RuleOverride[]): HTMLElement {
+  const card = document.createElement('div');
+  card.className = 'rule-group-card';
+
+  const header = document.createElement('div');
+  header.className = 'rule-group-header';
+  const emoji = document.createElement('div');
+  emoji.className = 'rule-group-emoji';
+  emoji.textContent = GROUP_EMOJIS[group.id] ?? '🔧';
+  const title = document.createElement('div');
+  title.className = 'rule-group-title';
+  title.textContent = GROUP_DISPLAY_NAMES[group.id] ?? group.id;
+  header.appendChild(emoji);
+  header.appendChild(title);
+  card.appendChild(header);
 
   for (const rule of rules) {
     const row = document.createElement('div');
     row.className = 'rule-row';
 
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = rule.enabled;
-    cb.id = `rule-${rule.id}`;
-    cb.addEventListener('change', async () => {
-      const next = upsertOverride(currentOverrides, { id: rule.id, enabled: cb.checked });
-      await setRuleOverrides(next);
-    });
-
-    const text = document.createElement('label');
+    const text = document.createElement('div');
     text.className = 'rule-text';
-    text.htmlFor = cb.id;
     const desc = document.createElement('div');
     desc.className = 'rule-desc';
     desc.textContent = rule.description ?? rule.id;
@@ -71,19 +96,20 @@ function renderGroupBlock(group: Group, rules: Rule[], currentOverrides: RuleOve
     text.appendChild(desc);
     text.appendChild(sel);
 
-    row.appendChild(cb);
+    const toggle = makeToggle(rule.enabled, async (checked) => {
+      const next = upsertOverride(currentOverrides, { id: rule.id, enabled: checked });
+      await setRuleOverrides(next);
+    });
+
     row.appendChild(text);
-    wrap.appendChild(row);
+    row.appendChild(toggle);
+    card.appendChild(row);
   }
 
-  return wrap;
+  return card;
 }
 
-function clearChildren(node: HTMLElement): void {
-  while (node.firstChild) node.removeChild(node.firstChild);
-}
-
-async function renderRules(): Promise<void> {
+async function renderRulesTab(): Promise<void> {
   const ruleOverrides  = await getRuleOverrides();
   const groupOverrides = await getGroupOverrides();
   const rules  = mergeRules (DEFAULT_RULES,  ruleOverrides);
@@ -99,30 +125,11 @@ async function renderRules(): Promise<void> {
   for (const group of groups) {
     const list = byGroup.get(group.id);
     if (!list || list.length === 0) continue;
-    RULES_CONTAINER.appendChild(renderGroupBlock(group, list, ruleOverrides));
+    RULES_CONTAINER.appendChild(renderGroupCard(group, list, ruleOverrides));
   }
 }
 
-async function renderAll(): Promise<void> {
-  const s = await getSettings();
-  setStyleRadio(s.insertionStyle);
-  await renderRules();
-}
-
-VERSION_LABEL.textContent = chrome.runtime.getManifest().version;
-
-onConfigChanged(() => { void renderAll(); });
-void renderAll();
-
-// ─── Advanced section ─────────────────────────────────────────────
-
-const GROUPS_JSON   = document.getElementById('groups-json')  as HTMLTextAreaElement;
-const RULES_JSON    = document.getElementById('rules-json')   as HTMLTextAreaElement;
-const GROUPS_ERROR  = document.getElementById('groups-error') as HTMLDivElement;
-const RULES_ERROR   = document.getElementById('rules-error')  as HTMLDivElement;
-const SAVE_GROUPS   = document.getElementById('save-groups')  as HTMLButtonElement;
-const SAVE_RULES    = document.getElementById('save-rules')   as HTMLButtonElement;
-const RESET_BTN     = document.getElementById('reset-btn')    as HTMLButtonElement;
+// ─── Advanced tab ────────────────────────────────────
 
 async function renderJsonEditors(): Promise<void> {
   const ruleOverrides  = await getRuleOverrides();
@@ -181,7 +188,7 @@ function diffOverrides<T extends { id: string }>(
       out.push({ ...item, isCustom: true });
       continue;
     }
-    const patch: Partial<T> & { id: string } = { id: item.id } as Partial<T> & { id: string };
+    const patch = { id: item.id } as Partial<T> & { id: string };
     let differs = false;
     for (const key of Object.keys(item) as Array<keyof T>) {
       if (key === 'id') continue;
@@ -198,18 +205,10 @@ function diffOverrides<T extends { id: string }>(
 SAVE_GROUPS.addEventListener('click', async () => {
   GROUPS_ERROR.textContent = '';
   let parsed: unknown;
-  try {
-    parsed = JSON.parse(GROUPS_JSON.value);
-  } catch (e) {
-    GROUPS_ERROR.textContent = `Невалидный JSON: ${(e as Error).message}`;
-    return;
-  }
-  try {
-    validateGroups(parsed);
-  } catch (e) {
-    GROUPS_ERROR.textContent = (e as Error).message;
-    return;
-  }
+  try { parsed = JSON.parse(GROUPS_JSON.value); }
+  catch (e) { GROUPS_ERROR.textContent = `Невалидный JSON: ${(e as Error).message}`; return; }
+  try { validateGroups(parsed); }
+  catch (e) { GROUPS_ERROR.textContent = (e as Error).message; return; }
   const overrides = diffOverrides(DEFAULT_GROUPS, parsed) as any;
   await setGroupOverrides(overrides);
 });
@@ -217,23 +216,16 @@ SAVE_GROUPS.addEventListener('click', async () => {
 SAVE_RULES.addEventListener('click', async () => {
   RULES_ERROR.textContent = '';
   let parsed: unknown;
-  try {
-    parsed = JSON.parse(RULES_JSON.value);
-  } catch (e) {
-    RULES_ERROR.textContent = `Невалидный JSON: ${(e as Error).message}`;
-    return;
-  }
+  try { parsed = JSON.parse(RULES_JSON.value); }
+  catch (e) { RULES_ERROR.textContent = `Невалидный JSON: ${(e as Error).message}`; return; }
 
   const groupOverrides = await getGroupOverrides();
   const allGroups = mergeGroups(DEFAULT_GROUPS, groupOverrides);
   const groupIds = new Set(allGroups.map(g => g.id));
 
-  try {
-    validateRules(parsed, groupIds);
-  } catch (e) {
-    RULES_ERROR.textContent = (e as Error).message;
-    return;
-  }
+  try { validateRules(parsed, groupIds); }
+  catch (e) { RULES_ERROR.textContent = (e as Error).message; return; }
+
   const overrides = diffOverrides(DEFAULT_RULES, parsed) as any;
   await setRuleOverrides(overrides);
 });
@@ -243,5 +235,14 @@ RESET_BTN.addEventListener('click', async () => {
   await resetToDefaults();
 });
 
-onConfigChanged(() => { void renderJsonEditors(); });
-void renderJsonEditors();
+// ─── Top-level ───────────────────────────────────────
+
+VERSION_LABEL.textContent = chrome.runtime.getManifest().version;
+
+async function renderAll(): Promise<void> {
+  await renderRulesTab();
+  await renderJsonEditors();
+}
+
+onConfigChanged(() => { void renderAll(); });
+void renderAll();
