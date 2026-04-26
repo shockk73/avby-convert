@@ -5,11 +5,16 @@ const HASH_ATTR = 'data-avby-orig-hash';
 const ORIG_ATTR = 'data-avby-original';
 const USD_NODE_CLASS = 'avby-usd';
 
-/**
- * Cheap DJB2 hash. We only need to detect "did the original text change",
- * collisions on short price strings are extremely unlikely and the consequence
- * of a collision is a missed re-render — not corruption.
- */
+// All host classes our handlers may add to the original element.
+// removeConversion sweeps the union so every style is universally undoable.
+const HOST_CLASSES = [
+  'avby-original-hidden',
+  'avby-original-faded',
+  'avby-strike-host',
+  'avby-pill-host',
+];
+
+/** Cheap DJB2-style hash to detect original-text changes. */
 function hashText(s: string): string {
   let h = 5381;
   for (let i = 0; i < s.length; i++) {
@@ -18,37 +23,22 @@ function hashText(s: string): string {
   return s.length + ':' + (h >>> 0).toString(36);
 }
 
-/**
- * Wrap el's existing non-USD children inside a <span data-avby-original> marker
- * so that subsequent passes can read the original text without picking up the
- * appended USD label. No-op if the marker already exists.
- */
 function ensureOriginalWrap(el: HTMLElement): HTMLSpanElement {
   const existing = el.querySelector<HTMLSpanElement>(`:scope > [${ORIG_ATTR}]`);
   if (existing) return existing;
   const wrap = document.createElement('span');
   wrap.setAttribute(ORIG_ATTR, '');
-  // Move every current child into the wrap, except any prior USD node (there
-  // shouldn't be one since applyConversion calls removeConversion first, but
-  // be defensive).
-  const children = Array.from(el.childNodes);
-  for (const node of children) {
+  for (const node of Array.from(el.childNodes)) {
     if (
       node.nodeType === 1 &&
       (node as HTMLElement).classList?.contains(USD_NODE_CLASS)
-    ) {
-      continue;
-    }
+    ) continue;
     wrap.appendChild(node);
   }
   el.appendChild(wrap);
   return wrap;
 }
 
-/**
- * Reverse of ensureOriginalWrap: move the marker's children back inline and
- * remove the marker span. Safe to call when no marker is present.
- */
 function unwrapOriginal(el: HTMLElement): void {
   const wrap = el.querySelector<HTMLSpanElement>(`:scope > [${ORIG_ATTR}]`);
   if (!wrap) return;
@@ -57,14 +47,56 @@ function unwrapOriginal(el: HTMLElement): void {
   parent.removeChild(wrap);
 }
 
-/**
- * Insert (or update) the USD label next to/below an original element.
- * Returns true if the element now has a USD label, false if it was removed.
- *
- * mode === 'off'      — remove any existing label, hide nothing.
- * mode === 'usd_only' — replace: hide original via class, show USD label only.
- * mode === 'both'     — show both; insertion style governs placement.
- */
+function makeUsdNode(text: string, classes: string[]): HTMLSpanElement {
+  const node = document.createElement('span');
+  node.className = classes.join(' ');
+  node.textContent = text;
+  return node;
+}
+
+// ─── Style handlers ─────────────────────────────────────────────
+
+type StyleHandler = (el: HTMLElement, usdText: string) => void;
+
+const renderInline: StyleHandler = (el, usdText) => {
+  el.appendChild(makeUsdNode('· ' + usdText, [USD_NODE_CLASS, 'avby-usd--inline']));
+};
+
+const renderBadge: StyleHandler = (el, usdText) => {
+  el.appendChild(makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--badge']));
+};
+
+const renderBelow: StyleHandler = (el, usdText) => {
+  el.insertAdjacentElement('afterend', makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--below']));
+};
+
+const renderInverted: StyleHandler = (el, usdText) => {
+  el.classList.add('avby-original-faded');
+  const usdNode = makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--lead']);
+  el.insertBefore(usdNode, el.firstChild);
+};
+
+const renderStrikethrough: StyleHandler = (el, usdText) => {
+  el.classList.add('avby-strike-host');
+  el.insertAdjacentElement('afterend', makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--strike']));
+};
+
+const renderPillDouble: StyleHandler = (el, usdText) => {
+  el.classList.add('avby-pill-host');
+  el.appendChild(makeUsdNode('· ' + usdText, [USD_NODE_CLASS, 'avby-usd--inline']));
+};
+
+const STYLES: Record<InsertionStyle, StyleHandler> = {
+  inline:        renderInline,
+  badge:         renderBadge,
+  below:         renderBelow,
+  inverted:      renderInverted,
+  strikethrough: renderStrikethrough,
+  pill_double:   renderPillDouble,
+};
+
+// ─── Public API ─────────────────────────────────────────────────
+
 export function applyConversion(
   el: HTMLElement,
   ruleId: string,
@@ -73,32 +105,19 @@ export function applyConversion(
   style: InsertionStyle,
 ): boolean {
   removeConversion(el);
-
   if (mode === 'off') return false;
 
-  // Wrap the original content first so subsequent passes can detect text
-  // changes without confusing them with the USD label we are about to add.
-  const wrap = ensureOriginalWrap(el);
-  el.setAttribute(HASH_ATTR, hashText(wrap.textContent ?? ''));
+  ensureOriginalWrap(el);
+  el.setAttribute(HASH_ATTR, hashText(getOriginalText(el)));
 
-  const usdNode = document.createElement('span');
-  usdNode.className = USD_NODE_CLASS;
   if (mode === 'usd_only') {
-    usdNode.classList.add(`${USD_NODE_CLASS}--replace`);
     el.classList.add('avby-original-hidden');
+    el.insertAdjacentElement(
+      'afterend',
+      makeUsdNode(usdText, [USD_NODE_CLASS, 'avby-usd--replace']),
+    );
   } else {
-    usdNode.classList.add(`${USD_NODE_CLASS}--${style}`);
-  }
-  usdNode.textContent = usdText;
-
-  // For usd_only the original element is hidden via .avby-original-hidden
-  // (display:none !important), so the USD node must live OUTSIDE el to remain
-  // visible. For 'both' + 'below' we also insert as a sibling. Otherwise
-  // (badge / inline) we append inside.
-  if (mode === 'usd_only' || (style === 'below' && mode === 'both')) {
-    el.insertAdjacentElement('afterend', usdNode);
-  } else {
-    el.appendChild(usdNode);
+    STYLES[style](el, usdText);
   }
 
   el.setAttribute(DATA_ATTR, ruleId);
@@ -106,13 +125,16 @@ export function applyConversion(
 }
 
 export function removeConversion(el: HTMLElement): void {
-  el.classList.remove('avby-original-hidden');
+  for (const cls of HOST_CLASSES) el.classList.remove(cls);
   el.removeAttribute(DATA_ATTR);
   el.removeAttribute(HASH_ATTR);
-  const child = el.querySelector(`:scope > .${USD_NODE_CLASS}`);
-  if (child) child.remove();
+
+  for (const child of Array.from(el.querySelectorAll(`:scope > .${USD_NODE_CLASS}`))) {
+    child.remove();
+  }
   const next = el.nextElementSibling;
   if (next && next.classList.contains(USD_NODE_CLASS)) next.remove();
+
   unwrapOriginal(el);
 }
 
@@ -120,33 +142,16 @@ export function isConverted(el: HTMLElement, ruleId: string): boolean {
   return el.getAttribute(DATA_ATTR) === ruleId;
 }
 
-/**
- * Return the rule id that previously converted this element, or null if none.
- * Used by the walker to enforce first-rule-wins across rules without leaking
- * the data-attribute name out of this module.
- */
 export function getConvertedRuleId(el: HTMLElement): string | null {
   return el.getAttribute(DATA_ATTR);
 }
 
-/**
- * Read the element's "original" text — the BYN content as it stood at the
- * moment of first conversion (preserved inside [data-avby-original]). For
- * elements that have not yet been converted, falls back to the element's full
- * textContent. Either way, the returned string excludes any USD label that
- * applyConversion may have appended.
- */
 export function getOriginalText(el: HTMLElement): string {
   const wrap = el.querySelector<HTMLSpanElement>(`:scope > [${ORIG_ATTR}]`);
   if (wrap) return wrap.textContent ?? '';
   return el.textContent ?? '';
 }
 
-/**
- * Returns true when the original text under [data-avby-original] no longer
- * matches the hash that was stored when the conversion was applied. Indicates
- * the element should be re-converted (e.g. AJAX price update).
- */
 export function originalTextChanged(el: HTMLElement): boolean {
   const stored = el.getAttribute(HASH_ATTR);
   if (stored === null) return false;
