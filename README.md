@@ -7,12 +7,10 @@
 ## Установка
 
 ### Chrome / Edge / Brave / Opera
-- *(после публикации)* Через Chrome Web Store: ссылка появится здесь.
-- Сейчас: скачать релиз с [Releases](https://github.com/shockk73/avby-convert/releases), распаковать zip, открыть `chrome://extensions/`, включить "Developer mode", нажать "Load unpacked" → выбрать папку.
+- скачать релиз с [Releases](https://github.com/shockk73/avby-convert/releases), распаковать zip, открыть `chrome://extensions/`, включить "Developer mode", нажать "Load unpacked" → выбрать папку.
 
 ### Firefox (десктоп и Android)
-- *(после публикации)* Через `addons.mozilla.org`: ссылка появится здесь.
-- Сейчас: скачать `avby-convert-firefox.zip` из Releases. На десктопе → `about:debugging` → "Load Temporary Add-on" → выбрать `manifest.json` внутри zip. На Android Firefox — установка возможна только через подписанный xpi (см. Releases).
+- скачать `avby-convert-firefox.zip` из Releases. На десктопе → `about:debugging` → "Load Temporary Add-on" → выбрать `manifest.json` внутри zip. На Android Firefox — установка возможна только через подписанный xpi (см. Releases).
 
 ## Как работает
 
